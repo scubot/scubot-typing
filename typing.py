@@ -24,9 +24,11 @@ class Typing(BotModule):
             # First time init
             if len(self.module_db) == 0:
                 self.module_db.insert({'send_typing': False})
+                boolean = False
             else:
                 boolean = self.module_db.all()[0]['send_typing']
                 self.module_db.update({'send_typing': not boolean}, Query().send_typing == boolean)
+            await client.send_message(message.channel, "Typing is now " + str(not boolean))
         else:
             return 0
 
@@ -35,7 +37,7 @@ class Typing(BotModule):
         channel = client.get_channel(self.channel)
         try:
             if self.module_db.all()[0]['send_typing']:
-                client.send_typing(channel)
+                await client.send_typing(channel)
             else:
                 pass
         except IndexError:
