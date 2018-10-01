@@ -33,9 +33,12 @@ class Typing(BotModule):
     async def background_loop(self, client):
         await client.wait_until_ready()
         channel = client.get_channel(self.channel)
-        if self.module_db.all()[0]['send_typing']:
-            client.send_typing(channel)
-        else:
+        try:
+            if self.module_db.all()[0]['send_typing']:
+                client.send_typing(channel)
+            else:
+                pass
+        except IndexError:
             pass
         # Each 'send_typing' lasts for 10 seconds. To make it look continuous, we'll send it
         # every 8 seconds.
