@@ -9,9 +9,9 @@ class Typing(BotModule):
 
     description = 'Simulates typing.'
 
-    help_text = ''
+    help_text = '`!typing` to simulate scubot typing.'
 
-    trigger_string = ''
+    trigger_string = 'typing'
 
     has_background_loop = True
 
@@ -22,7 +22,7 @@ class Typing(BotModule):
     async def parse_command(self, message, client):
         if message.channel.id in self.admin_modules:
             # First time init
-            if len(self.module_db) != 0:
+            if len(self.module_db) == 0:
                 self.module_db.insert({'send_typing': False})
             else:
                 boolean = self.module_db.all()[0]['send_typing']
