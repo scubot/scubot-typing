@@ -1,6 +1,7 @@
 import discord
 from modules.botModule import *
 from tinydb import TinyDB, Query
+import asyncio
 
 
 class Typing(BotModule):
@@ -34,3 +35,6 @@ class Typing(BotModule):
             client.send_typing(channel)
         else:
             pass
+        # Each 'send_typing' lasts for 10 seconds. To make it look continuous, we'll send it
+        # every 8 seconds.
+        await asyncio.sleep(8)
