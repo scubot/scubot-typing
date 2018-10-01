@@ -17,6 +17,8 @@ class Typing(BotModule):
 
     module_version = '1.0.0'
 
+    channel = '349851272465088513'
+
     async def parse_command(self, message, client):
         if message.channel.id in self.admin_modules:
             # First time init
