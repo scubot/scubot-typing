@@ -7,7 +7,7 @@ import asyncio
 class Typing(BotModule):
     name = 'typing'
 
-    description = 'Simulates typing'
+    description = 'Simulates typing.'
 
     help_text = ''
 
@@ -25,7 +25,7 @@ class Typing(BotModule):
             if len(self.module_db) != 0:
                 self.module_db.insert({'send_typing': False})
             else:
-                boolean = self.module_db.all[0]['send_typing']
+                boolean = self.module_db.all()[0]['send_typing']
                 self.module_db.update({'send_typing': not boolean}, Query().send_typing == boolean)
         else:
             return 0
@@ -33,7 +33,7 @@ class Typing(BotModule):
     async def background_loop(self, client):
         await client.wait_until_ready()
         channel = client.get_channel(self.channel)
-        if self.module_db.all[0]['send_typing']:
+        if self.module_db.all()[0]['send_typing']:
             client.send_typing(channel)
         else:
             pass
