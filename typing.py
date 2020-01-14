@@ -78,13 +78,13 @@ class Typing(commands.Cog):
         if self.channel is not None:
             boolean = self.db.all()[0]['send_typing']
             self.db.update({'send_typing': not boolean}, Query().send_typing == boolean)
-            await ctx.send("Typing is now " + str(not boolean))
+            await ctx.send(f"Typing is now {str(not boolean)}")
         else:
             await ctx.send("Unable to start typing, channel not valid")
 
     @commands.has_any_role('Moderators', 'Admin', 'devs')
     @typing.command(name='channel')
-    async def set_channel(self, ctx, channel_id: str):
+    async def set_channel(self, ctx, *, channel: discord.TextChannel):
         """
         Function called by discord.py allowing the user to set a channel ID for the typing to occur in.
 
@@ -92,14 +92,10 @@ class Typing(commands.Cog):
 
         Args:
             ctx (Context): Object provided by discord.py to allow for the context of the command to be interpreted.
-            channel_id (str): User input that is used to determine which channel to type in.
+            channel (discord.TextChannel): User input that is used to determine which channel to type in.
         """
-        try:
-            int_id = int(channel_id)
-            self.db.update({'channel': channel_id}, Query())
-            await ctx.send("Set target channel ID to " + channel_id)
-        except ValueError as e:
-            await ctx.send("Error setting channel, not a valid ID")
+        self.db.update({'channel': channel.id}, Query())
+        await ctx.send(f"Set target channel ID to {channel.mention}")
 
 
 def setup(bot):
