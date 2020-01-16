@@ -95,7 +95,7 @@ class Typing(commands.Cog):
             channel (discord.TextChannel): User input that is used to determine which channel to type in.
         """
         self.db.update({'channel': channel.id}, Query())
-        await ctx.send(f"Set target channel ID to {channel.mention}")
+        await ctx.send(f"Set target channel to {channel.mention}")
 
 
 def setup(bot):
