@@ -1,48 +1,108 @@
-import discord
-from modules.botModule import *
+from discord.ext import commands, tasks
 from tinydb import TinyDB, Query
-import asyncio
+import discord
 
 
-class Typing(BotModule):
-    name = 'typing'
+class Typing(commands.Cog):
+    def __init__(self, bot):
+        """
+        Initialise the Typing module
 
-    description = 'Simulates typing.'
+        Set all of the various properties of the module and its required operating variables, open the database, start
+        the background loop, and initialise the database if needed.
 
-    help_text = '`!typing` to simulate scubot typing.'
+        Args:
+            bot (Bot): discord.py provided object that is used to assist with various discord interfacing
+        """
+        self.version = "2.0.0"
+        self.bot = bot
+        self.channel = None
+        self.db = TinyDB('./modules/databases/typing')
+        self.background_loop.start()
 
-    trigger_string = 'typing'
-
-    has_background_loop = True
-
-    module_version = '1.0.0'
-
-    channel = '349851272465088513'
-
-    async def parse_command(self, message, client):
-        if message.channel.id in self.admin_modules:
-            # First time init
-            if len(self.module_db) == 0:
-                self.module_db.insert({'send_typing': False})
-                boolean = False
-            else:
-                boolean = self.module_db.all()[0]['send_typing']
-                self.module_db.update({'send_typing': not boolean}, Query().send_typing == boolean)
-            await client.send_message(message.channel, "Typing is now " + str(not boolean))
+        # Set typing to false on startup, and initialise the database
+        if len(self.db) == 0:
+            self.db.insert({'send_typing': False, 'channel': None})
         else:
-            return 0
+            self.db.update({'send_typing': False}, Query())
 
-    async def background_loop(self, client):
-        await client.wait_until_ready()
-        channel = client.get_channel(self.channel)
-        while not client.is_closed:
-            try:
-                if self.module_db.all()[0]['send_typing']:
-                    await client.send_typing(channel)
-                else:
-                    pass
-            except IndexError:
+    @tasks.loop(seconds=5.0)
+    async def background_loop(self):
+        """
+        Background loop for triggering typing
+
+        When typing is triggered by discord.py it only lasts for ~8 seconds, therefore a loop is necessary to keep it
+        going over an extended period, the loop runs constantly over a 5 second interval to ensure that the typing
+        appears continuous. The loop runs constantly but only triggers typing if the DB entry is true.
+
+        Examples:
+            For examples and usage see: https://discordpy.readthedocs.io/en/latest/ext/tasks/
+        """
+        try:
+            if self.db.all()[0]['send_typing'] and self.channel is not None:
+                await self.channel.trigger_typing()
+            else:
                 pass
-            # Each 'send_typing' lasts for 10 seconds. To make it look continuous, we'll send it
-            # every 8 seconds.
-            await asyncio.sleep(5)
+        except IndexError:
+            pass
+
+    @background_loop.before_loop
+    async def before_loop(self):
+        """
+        Wait until the bot is ready before starting the loop.
+        """
+        await self.bot.wait_until_ready()
+
+    def cog_unload(self):
+        """
+        Stop the loop when the module is unloaded.
+        """
+        self.background_loop.cancel()
+
+    @commands.has_any_role('Moderators', 'Admin', 'devs')
+    @commands.group(invoke_without_command=True)
+    async def typing(self, ctx):
+        """
+        Function called by discord.py when the user invokes the typing command, which toggles typing.
+
+        This function sets the channel object used by the background loop as well as sets the typing boolean in the
+        database.
+
+        Args:
+            ctx (Context): Object provided by discord.py to allow for the context of the command to be interpreted.
+        """
+        if self.db.all()[0]['channel'] is not None:
+            self.channel = discord.Client.get_channel(ctx.bot, int(self.db.all()[0]['channel']))
+        else:
+            self.channel = ctx.channel
+        if self.channel is not None:
+            boolean = self.db.all()[0]['send_typing']
+            self.db.update({'send_typing': not boolean}, Query().send_typing == boolean)
+            await ctx.send(f"Typing is now {str(not boolean)}")
+        else:
+            await ctx.send("Unable to start typing, channel not valid")
+
+    @commands.has_any_role('Moderators', 'Admin', 'devs')
+    @typing.command(name='channel')
+    async def set_channel(self, ctx, *, channel: discord.TextChannel):
+        """
+        Function called by discord.py allowing the user to set a channel ID for the typing to occur in.
+
+        This function validates (so far as int conversion) an ID and writes it to the database.
+
+        Args:
+            ctx (Context): Object provided by discord.py to allow for the context of the command to be interpreted.
+            channel (discord.TextChannel): User input that is used to determine which channel to type in.
+        """
+        self.db.update({'channel': channel.id}, Query())
+        await ctx.send(f"Set target channel to {channel.mention}")
+
+
+def setup(bot):
+    """
+    Set up the bot.
+
+    Args:
+        bot (Bot): discord.py provided object that is used to assist with various discord interfacing
+    """
+    bot.add_cog(Typing(bot))
